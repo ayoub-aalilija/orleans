@@ -7,6 +7,7 @@ using Orleans.Configuration;
 using Orleans.Storage;
 using System.Text;
 using System.Text.RegularExpressions;
+using Azure.Storage;
 using Azure.Storage.Blobs;
 
 namespace Tester.AzureUtils.Persistence;
@@ -119,6 +120,47 @@ public class PersistenceStateTests_AzureBlobStore_CustomContainerFactory : Base_
     }
 
     public PersistenceStateTests_AzureBlobStore_CustomContainerFactory(ITestOutputHelper output, Fixture fixture) : base(output, fixture, "UnitTests.PersistentState.Grains")
+    {
+        fixture.EnsurePreconditionsMet();
+    }
+}
+
+[TestCategory("Persistence"), TestCategory("AzureStorage")]
+public class PersistenceStateTests_AzureBlobStore_ChecksumValidation : Base_PersistenceGrainTests_AzureStore, IClassFixture<PersistenceStateTests_AzureBlobStore_ChecksumValidation.Fixture>
+{
+    public class Fixture : BaseAzureTestClusterFixture
+    {
+        protected override void ConfigureTestCluster(TestClusterBuilder builder)
+        {
+            builder.Options.InitialSilosCount = 4;
+            builder.Options.UseTestClusterMembership = false;
+            builder.AddSiloBuilderConfigurator<SiloBuilderConfigurator>();
+            builder.AddSiloBuilderConfigurator<StorageSiloBuilderConfigurator>();
+            builder.AddClientBuilderConfigurator<ClientBuilderConfigurator>();
+        }
+
+        private class StorageSiloBuilderConfigurator : ISiloConfigurator
+        {
+            public void Configure(ISiloBuilder hostBuilder)
+            {
+                hostBuilder.AddAzureBlobGrainStorage("GrainStorageForTest", (AzureBlobStorageOptions options) =>
+                {
+                    var blobClientOptions = new BlobClientOptions
+                    {
+                        TransferValidation =
+                        {
+                            Download = { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 },
+                            Upload = { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 }
+                        }
+                    };
+                    options.ConfigureTestDefaults(blobClientOptions);
+                    options.DeleteStateOnClear = true;
+                });
+            }
+        }
+    }
+
+    public PersistenceStateTests_AzureBlobStore_ChecksumValidation(ITestOutputHelper output, Fixture fixture) : base(output, fixture, "UnitTests.PersistentState.Grains")
     {
         fixture.EnsurePreconditionsMet();
     }

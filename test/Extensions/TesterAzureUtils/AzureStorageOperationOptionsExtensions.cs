@@ -45,15 +45,15 @@ namespace Tester.AzureUtils
             return options;
         }
 
-        public static Orleans.Configuration.AzureBlobStorageOptions ConfigureTestDefaults(this Orleans.Configuration.AzureBlobStorageOptions options)
+        public static Orleans.Configuration.AzureBlobStorageOptions ConfigureTestDefaults(this Orleans.Configuration.AzureBlobStorageOptions options, BlobClientOptions clientOptions = null)
         {
             if (TestDefaultConfiguration.UseAadAuthentication)
             {
-                options.BlobServiceClient = new(TestDefaultConfiguration.DataBlobUri, TestDefaultConfiguration.TokenCredential);
+                options.BlobServiceClient = new(TestDefaultConfiguration.DataBlobUri, TestDefaultConfiguration.TokenCredential, clientOptions);
             }
             else
             {
-                options.BlobServiceClient = new(TestDefaultConfiguration.DataConnectionString);
+                options.BlobServiceClient = new(TestDefaultConfiguration.DataConnectionString, clientOptions);
             }
 
             return options;
